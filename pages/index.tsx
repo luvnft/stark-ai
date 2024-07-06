@@ -10,7 +10,7 @@ export default function Page() {
     const getToken = async () => {
       const resp = await fetchAccessToken({
         apiKey: String(process.env.NEXT_PUBLIC_HUME_API_KEY),
-        clientSecret: String(process.env.NEXT_PUBLIC_HUME_CLIENT_SECRET),
+        secretKey: String(process.env.NEXT_PUBLIC_HUME_SECRET_KEY),
       });
 
       setAccessToken(resp);
