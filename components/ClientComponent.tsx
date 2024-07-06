@@ -1,4 +1,4 @@
-"use client";
+import React from 'react'; // Ensure React is imported if not already
 import {
     VoiceProvider,
     ToolCall,
@@ -9,7 +9,7 @@ import {
 import Messages from "./Messages";
 import Controls from "./Controls";
 import Airports from './airports.json';
-import Cities from './cities.json'
+import Cities from './cities.json';
 
 const handleToolCall: ToolCallHandler = async (
     toolCall: ToolCall
@@ -24,12 +24,36 @@ const handleToolCall: ToolCallHandler = async (
                 date_of_travel: string;
             };
 
-            const deptCityCode = Cities.find((city: any) => city.name === args.departure).code;
-            const arrCityCode = Cities.find((city: any) => city.name === args.arrival).code;
+            const deptCity = Cities.find((city: any) => city.name === args.departure);
+            const arrCity = Cities.find((city: any) => city.name === args.arrival);
 
+            if (!deptCity || !arrCity) {
+                return {
+                    type: 'tool_error',
+                    tool_call_id: toolCall.tool_call_id,
+                    error: 'City not found',
+                    code: 'city_not_found',
+                    level: 'warn',
+                    content: 'Departure or arrival city not found',
+                };
+            }
 
-            const departureAirport = Airports.find((airport: any) => airport.city_code === deptCityCode).code;
-            const arrivalAirport = Airports.find((airport: any) => airport.city_code === arrCityCode).code;
+            const deptCityCode = deptCity.code;
+            const arrCityCode = arrCity.code;
+
+            const departureAirport = Airports.find((airport: any) => airport.city_code === deptCityCode);
+            const arrivalAirport = Airports.find((airport: any) => airport.city_code === arrCityCode);
+
+            if (!departureAirport || !arrivalAirport) {
+                return {
+                    type: 'tool_error',
+                    tool_call_id: toolCall.tool_call_id,
+                    error: 'Airport not found',
+                    code: 'airport_not_found',
+                    level: 'warn',
+                    content: 'Departure or arrival airport not found',
+                };
+            }
 
             const resp2 = await fetch('/api/fetchCheapPrices', {
                 method: 'POST',
@@ -37,8 +61,8 @@ const handleToolCall: ToolCallHandler = async (
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    departureAirport,
-                    arrivalAirport,
+                    departureAirport: departureAirport.code,
+                    arrivalAirport: arrivalAirport.code,
                     date_of_travel: args.date_of_travel,
                 }),
             });
@@ -61,10 +85,10 @@ const handleToolCall: ToolCallHandler = async (
             return {
                 type: 'tool_error',
                 tool_call_id: toolCall.tool_call_id,
-                error: 'Weather tool error',
-                code: 'weather_tool_error',
+                error: 'Flight price tool error',
+                code: 'flight_price_tool_error',
                 level: 'warn',
-                content: 'There was an error with the weather tool',
+                content: 'There was an error with the flight price tool',
             };
         }
     } else {
@@ -79,34 +103,27 @@ const handleToolCall: ToolCallHandler = async (
     }
 };
 
-export default function ClientComponent({
-    accessToken,
-}: {
-    accessToken: string;
-}) {
+const ClientComponent: React.FC<{ accessToken: string }> = ({ accessToken }) => {
     return (
         <VoiceProvider
             configId={process.env.NEXT_PUBLIC_HUME_CONFIG_ID || ""}
             auth={{ type: "accessToken", value: accessToken }}
             onToolCall={handleToolCall}
         >
-            <div className="h-[100vh] flex w-full ">
-                <div className="flex items-center p-5 ">
+            <div className="h-[100vh] flex w-full">
+                <div className="flex items-center p-5">
                     <div>
                         <div id="mic" className="w-[400px]">
-
+                            {/* Mic component or placeholder */}
                         </div>
                     </div>
-
                 </div>
-
 
                 <Messages />
                 <Controls />
-
-
             </div>
-
         </VoiceProvider>
     );
-}
+};
+
+export default ClientComponent;
